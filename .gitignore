@@ -1,0 +1,12 @@
+.venv/
+venv/
+**/__pycache__/
+**/*.pyc
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/*.log
+**/*.otf
+config/settings.py
+config/napcat.json
+*.docx
