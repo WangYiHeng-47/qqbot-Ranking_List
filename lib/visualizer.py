@@ -157,15 +157,26 @@ class StatsVisualizer:
         corpus = []
         for row in db_rows:
             try:
-                raw_content = row[0] if isinstance(row, tuple) else row
+                # 兼容 sqlite3.Row 和普通 tuple
+                if hasattr(row, 'keys'):
+                    # sqlite3.Row 对象
+                    raw_content = row['raw_content'] if 'raw_content' in row.keys() else row[0]
+                elif isinstance(row, tuple):
+                    raw_content = row[0]
+                else:
+                    raw_content = row
+                
                 segments = json.loads(raw_content)
                 for seg in segments:
                     if seg.get('type') == 'text':
                         text = seg.get('data', {}).get('text', '').strip()
                         if text:
                             corpus.append(text)
-            except (json.JSONDecodeError, KeyError, TypeError):
+            except (json.JSONDecodeError, KeyError, TypeError, IndexError) as e:
+                logger.debug(f"解析消息内容失败: {e}, row={row}")
                 continue
+        
+        logger.info(f"从 {len(db_rows)} 条消息中提取到 {len(corpus)} 条文本")
         return "\n".join(corpus)
     
     def segment_text(self, text: str) -> List[str]:
@@ -344,13 +355,14 @@ class StatsVisualizer:
         """
         return html
     
-    def _generate_rank_html(self, user_stats: List[Dict], total_messages: int) -> str:
+    def _generate_rank_html(self, user_stats: List[Dict], total_messages: int, total_users: int) -> str:
         """
         生成用户排行榜 HTML
         
         Args:
             user_stats: [{'user_id': 123, 'count': 50, 'nickname': '昵称'}, ...]
             total_messages: 今日总消息数
+            total_users: 今日参与人数
         """
         rank_items = ""
         medals = ['🥇', '🥈', '🥉']
@@ -587,7 +599,7 @@ class StatsVisualizer:
                     </div>
                     <div class="stat-chip">
                         <span>👥</span>
-                        <span>{len(user_stats)} 人参与</span>
+                        <span>{total_users} 人参与</span>
                     </div>
                 </div>
             </div>
@@ -910,10 +922,11 @@ class StatsVisualizer:
         
         user_names = user_names or {}
         
-        # 计算总消息数
+        # 计算总消息数和总用户数
         total_messages = sum(count for _, count in user_stats)
+        total_users = len(user_stats)  # 总参与人数
         
-        # 构建用户数据列表
+        # 构建用户数据列表（只取 top_n）
         users_data = []
         for user_id, count in user_stats[:top_n]:
             users_data.append({
@@ -922,7 +935,7 @@ class StatsVisualizer:
                 'nickname': user_names.get(user_id) or str(user_id)
             })
         
-        html = self._generate_rank_html(users_data, total_messages)
+        html = self._generate_rank_html(users_data, total_messages, total_users)
         return await html_to_image(html, width=550)
     
     async def generate_hourly_activity_chart(self, hourly_counts: Dict[int, int]) -> Optional[io.BytesIO]:
