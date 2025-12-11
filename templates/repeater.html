@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .repeater-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        background: #FAFAFA;
+        border-radius: 16px;
+    }
+
+    .repeater-rank {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .repeater-rank.r1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
+    .repeater-rank.r2 { background: linear-gradient(135deg, #C0C0C0, #A8A8A8); }
+    .repeater-rank.r3 { background: linear-gradient(135deg, #CD7F32, #B87333); }
+    .repeater-rank.rn { background: linear-gradient(135deg, #6750A4, #9A82DB); }
+
+    .repeater-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .repeater-text {
+        font-size: 14px;
+        color: #1D1B20;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 4px;
+        padding: 8px 12px;
+        background: #F3EDF7;
+        border-radius: 8px;
+    }
+
+    .repeater-meta {
+        font-size: 12px;
+        color: #79747E;
+    }
+
+    .repeater-count {
+        font-size: 24px;
+        font-weight: 700;
+        color: #6750A4;
+        flex-shrink: 0;
+        margin-left: 12px;
+    }
+
+    .repeater-count span {
+        font-size: 12px;
+        color: #79747E;
+        font-weight: 400;
+    }
+
+    .summary-card {
+        background: linear-gradient(135deg, #FFE5D0, #FFCC80);
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .summary-emoji {
+        font-size: 48px;
+        margin-bottom: 8px;
+    }
+
+    .summary-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1D1B20;
+    }
+
+    .summary-sub {
+        font-size: 13px;
+        color: #49454F;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon">🔁</div>
+        <div>
+            <div class="card-title">复读机检测报告</div>
+            <div class="card-subtitle">人类的本质是...复读机！</div>
+        </div>
+        <div class="timestamp">{{ timestamp }}</div>
+    </div>
+
+    <div class="summary-card">
+        <div class="summary-emoji">🦜</div>
+        <div class="summary-text">共检测到 {{ total_repeats }} 次复读行为</div>
+        <div class="summary-sub">涉及 {{ total_users }} 名群友参与</div>
+    </div>
+
+    {% if repeats %}
+    <div class="repeater-list">
+        {% for item in repeats[:10] %}
+        <div class="repeater-item">
+            <div class="repeater-rank {% if loop.index == 1 %}r1{% elif loop.index == 2 %}r2{% elif loop.index == 3 %}r3{% else %}rn{% endif %}">
+                {{ loop.index }}
+            </div>
+            <div class="repeater-content">
+                <div class="repeater-text">"{{ item.text }}"</div>
+                <div class="repeater-meta">{{ item.users|length }} 人参与复读</div>
+            </div>
+            <div class="repeater-count">
+                {{ item.count }}<span>次</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #79747E;">
+        <div style="font-size: 48px; margin-bottom: 16px;">🤔</div>
+        <div>今日暂未检测到复读行为</div>
+    </div>
+    {% endif %}
+
+    <div class="stats-footer">
+        <div class="stat-chip">
+            <span>💬</span>
+            <span>分析了 {{ total_messages }} 条消息</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

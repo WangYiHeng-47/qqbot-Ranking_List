@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .sentiment-section {
+        margin-bottom: 24px;
+    }
+
+    .mood-card {
+        background: linear-gradient(135deg, #E8DEF8, #D0BCFF);
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 16px;
+    }
+
+    .mood-emoji {
+        font-size: 48px;
+        margin-bottom: 8px;
+    }
+
+    .mood-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1D1B20;
+    }
+
+    .sentiment-bars {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .sentiment-bar {
+        flex: 1;
+        text-align: center;
+    }
+
+    .bar-label {
+        font-size: 12px;
+        color: #49454F;
+        margin-bottom: 8px;
+    }
+
+    .bar-container {
+        height: 120px;
+        background: #F3EDF7;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        border-radius: 12px 12px 0 0;
+        transition: height 0.3s ease;
+    }
+
+    .bar-fill.positive { background: linear-gradient(180deg, #4CAF50, #81C784); }
+    .bar-fill.neutral { background: linear-gradient(180deg, #9E9E9E, #BDBDBD); }
+    .bar-fill.negative { background: linear-gradient(180deg, #F44336, #E57373); }
+
+    .bar-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1D1B20;
+        margin-top: 8px;
+    }
+
+    .keywords-section {
+        margin-bottom: 24px;
+    }
+
+    .keyword-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .keyword-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #F9F6FC;
+        border-radius: 12px;
+    }
+
+    .keyword-rank {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        color: white;
+    }
+
+    .keyword-rank.r1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
+    .keyword-rank.r2 { background: linear-gradient(135deg, #C0C0C0, #A8A8A8); }
+    .keyword-rank.r3 { background: linear-gradient(135deg, #CD7F32, #B87333); }
+    .keyword-rank.r4 { background: linear-gradient(135deg, #6750A4, #9A82DB); }
+
+    .keyword-text {
+        flex: 1;
+        font-size: 15px;
+        font-weight: 500;
+        color: #1D1B20;
+    }
+
+    .keyword-weight {
+        font-size: 13px;
+        color: #6750A4;
+        background: #E8DEF8;
+        padding: 4px 10px;
+        border-radius: 10px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1D1B20;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon">🧠</div>
+        <div>
+            <div class="card-title">{{ period_name }}智能分析</div>
+            <div class="card-subtitle">NLP 情感与话题洞察</div>
+        </div>
+        <div class="timestamp">{{ timestamp }}</div>
+    </div>
+
+    <div class="sentiment-section">
+        <div class="section-title">💭 群聊氛围</div>
+        <div class="mood-card">
+            <div class="mood-emoji">{{ mood_emoji }}</div>
+            <div class="mood-text">{{ mood_text }}</div>
+        </div>
+
+        <div class="sentiment-bars">
+            <div class="sentiment-bar">
+                <div class="bar-label">😊 积极</div>
+                <div class="bar-container">
+                    <div class="bar-fill positive" style="height: {{ positive_pct }}%;"></div>
+                </div>
+                <div class="bar-value">{{ "%.1f"|format(positive_pct) }}%</div>
+            </div>
+            <div class="sentiment-bar">
+                <div class="bar-label">😐 中性</div>
+                <div class="bar-container">
+                    <div class="bar-fill neutral" style="height: {{ neutral_pct }}%;"></div>
+                </div>
+                <div class="bar-value">{{ "%.1f"|format(neutral_pct) }}%</div>
+            </div>
+            <div class="sentiment-bar">
+                <div class="bar-label">😔 消极</div>
+                <div class="bar-container">
+                    <div class="bar-fill negative" style="height: {{ negative_pct }}%;"></div>
+                </div>
+                <div class="bar-value">{{ "%.1f"|format(negative_pct) }}%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="keywords-section">
+        <div class="section-title">🔥 热门话题 (TF-IDF)</div>
+        <div class="keyword-list">
+            {% for word, weight in keywords[:10] %}
+            <div class="keyword-item">
+                <div class="keyword-rank {% if loop.index == 1 %}r1{% elif loop.index == 2 %}r2{% elif loop.index == 3 %}r3{% else %}r4{% endif %}">
+                    {{ loop.index }}
+                </div>
+                <div class="keyword-text">{{ word }}</div>
+                <div class="keyword-weight">{{ "%.2f"|format(weight) }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="stats-footer">
+        <div class="stat-chip">
+            <span>💬</span>
+            <span>分析了 {{ total_messages }} 条消息</span>
+        </div>
+        <div class="stat-chip">
+            <span>📊</span>
+            <span>情感得分 {{ "%.2f"|format(sentiment_score) }}</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

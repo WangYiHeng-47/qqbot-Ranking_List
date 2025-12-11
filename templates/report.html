@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .period-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        background: linear-gradient(135deg, #6750A4, #9A82DB);
+        color: white;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .overview-card {
+        background: linear-gradient(135deg, #F3EDF7, #E8DEF8);
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .overview-card:nth-child(1) { background: linear-gradient(135deg, #E8DEF8, #D0BCFF); }
+    .overview-card:nth-child(2) { background: linear-gradient(135deg, #D0F8CE, #A8E6CF); }
+    .overview-card:nth-child(3) { background: linear-gradient(135deg, #FFE5D0, #FFCC80); }
+    .overview-card:nth-child(4) { background: linear-gradient(135deg, #D4E5FF, #90CAF9); }
+
+    .overview-icon {
+        font-size: 32px;
+        margin-bottom: 8px;
+    }
+
+    .overview-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1D1B20;
+    }
+
+    .overview-label {
+        font-size: 12px;
+        color: #49454F;
+        margin-top: 4px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1D1B20;
+        margin: 24px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .rank-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        background: #FAFAFA;
+        border-radius: 16px;
+    }
+
+    .rank-badge {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .rank-badge.r1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
+    .rank-badge.r2 { background: linear-gradient(135deg, #C0C0C0, #A8A8A8); }
+    .rank-badge.r3 { background: linear-gradient(135deg, #CD7F32, #B87333); }
+    .rank-badge.rn { background: linear-gradient(135deg, #6750A4, #9A82DB); }
+
+    .rank-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid #E8DEF8;
+    }
+
+    .rank-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .rank-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1D1B20;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rank-sub {
+        font-size: 12px;
+        color: #79747E;
+    }
+
+    .rank-count {
+        font-size: 18px;
+        font-weight: 700;
+        color: #6750A4;
+    }
+
+    .rank-count span {
+        font-size: 11px;
+        color: #79747E;
+        font-weight: 400;
+    }
+
+    .daily-chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+        height: 100px;
+        padding: 16px 8px;
+        background: #F9F6FC;
+        border-radius: 16px;
+        margin-bottom: 24px;
+    }
+
+    .daily-bar {
+        flex: 1;
+        background: linear-gradient(180deg, #6750A4, #9A82DB);
+        border-radius: 4px 4px 0 0;
+        min-height: 4px;
+    }
+
+    .daily-bar.peak {
+        background: linear-gradient(180deg, #FF6B6B, #FFE66D);
+    }
+
+    .word-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 16px;
+        background: #F9F6FC;
+        border-radius: 16px;
+    }
+
+    .word-tag {
+        padding: 6px 14px;
+        border-radius: 16px;
+        background: #E8DEF8;
+        color: #6750A4;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .word-tag:nth-child(-n+3) {
+        background: linear-gradient(135deg, #6750A4, #9A82DB);
+        color: white;
+        font-size: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon">{{ icon }}</div>
+        <div>
+            <div class="card-title">{{ title }}</div>
+            <div class="card-subtitle">{{ date_range }}</div>
+        </div>
+        <div class="timestamp">{{ timestamp }}</div>
+    </div>
+
+    <div class="period-badge">{{ period_name }}</div>
+
+    <div class="overview-grid">
+        <div class="overview-card">
+            <div class="overview-icon">💬</div>
+            <div class="overview-value">{{ total_messages }}</div>
+            <div class="overview-label">总消息数</div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-icon">👥</div>
+            <div class="overview-value">{{ active_users }}</div>
+            <div class="overview-label">活跃用户</div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-icon">📈</div>
+            <div class="overview-value">{{ daily_avg }}</div>
+            <div class="overview-label">日均消息</div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-icon">🔥</div>
+            <div class="overview-value">{{ peak_day }}</div>
+            <div class="overview-label">最活跃日</div>
+        </div>
+    </div>
+
+    <div class="section-title">👑 发言排行 TOP 5</div>
+    {% for user in top_users[:5] %}
+    <div class="rank-item">
+        <div class="rank-badge {% if loop.index == 1 %}r1{% elif loop.index == 2 %}r2{% elif loop.index == 3 %}r3{% else %}rn{% endif %}">
+            {{ loop.index }}
+        </div>
+        <img class="rank-avatar" src="https://q1.qlogo.cn/g?b=qq&nk={{ user.user_id }}&s=100" alt="">
+        <div class="rank-info">
+            <div class="rank-name">{{ user.nickname }}</div>
+            <div class="rank-sub">占比 {{ "%.1f"|format(user.percentage) }}%</div>
+        </div>
+        <div class="rank-count">{{ user.count }}<span>条</span></div>
+    </div>
+    {% endfor %}
+
+    {% if daily_stats %}
+    <div class="section-title">📊 每日消息趋势</div>
+    <div class="daily-chart">
+        {% for count in daily_stats %}
+        <div class="daily-bar {% if count == max_daily %}peak{% endif %}" 
+             style="height: {{ (count / max_daily * 100) if max_daily > 0 else 0 }}%;"></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if hot_words %}
+    <div class="section-title">🔥 热门词汇</div>
+    <div class="word-tags">
+        {% for word, count in hot_words[:15] %}
+        <span class="word-tag">{{ word }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="stats-footer">
+        <div class="stat-chip">
+            <span>📅</span>
+            <span>统计周期: {{ days }}天</span>
+        </div>
+        <div class="stat-chip">
+            <span>🖼️</span>
+            <span>图片 {{ image_count }} 张</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

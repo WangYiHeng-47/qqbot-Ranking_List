@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .avatar-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 4px solid #E8DEF8;
+        box-shadow: 0 4px 16px rgba(103, 80, 164, 0.2);
+    }
+
+    .user-info h2 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1D1B20;
+        margin-bottom: 4px;
+    }
+
+    .user-type {
+        font-size: 14px;
+        color: #6750A4;
+        background: #E8DEF8;
+        padding: 4px 12px;
+        border-radius: 12px;
+        display: inline-block;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .stat-box {
+        background: linear-gradient(135deg, #F3EDF7, #E8DEF8);
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .stat-box:nth-child(1) { background: linear-gradient(135deg, #E8DEF8, #D0BCFF); }
+    .stat-box:nth-child(2) { background: linear-gradient(135deg, #D0F8CE, #A8E6CF); }
+    .stat-box:nth-child(3) { background: linear-gradient(135deg, #FFE5D0, #FFCC80); }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1D1B20;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: #49454F;
+        margin-top: 4px;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1D1B20;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .hourly-chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        height: 80px;
+        margin-bottom: 24px;
+        background: #F9F6FC;
+        border-radius: 12px;
+        padding: 12px 8px;
+    }
+
+    .hour-bar {
+        flex: 1;
+        background: linear-gradient(180deg, #6750A4, #9A82DB);
+        border-radius: 3px 3px 0 0;
+        min-height: 4px;
+    }
+
+    .hour-bar.peak {
+        background: linear-gradient(180deg, #FF6B6B, #FFE66D);
+    }
+
+    .badges-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+
+    .badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: #F3EDF7;
+        border-radius: 20px;
+        font-size: 13px;
+        color: #49454F;
+    }
+
+    .badge.earned {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: white;
+        font-weight: 600;
+    }
+
+    .word-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        padding: 16px;
+        background: #F9F6FC;
+        border-radius: 16px;
+    }
+
+    .word-tag {
+        padding: 6px 12px;
+        border-radius: 16px;
+        background: #E8DEF8;
+        color: #6750A4;
+        font-weight: 500;
+    }
+
+    .word-tag.large { font-size: 18px; background: #D0BCFF; }
+    .word-tag.medium { font-size: 14px; }
+    .word-tag.small { font-size: 12px; opacity: 0.8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon">👤</div>
+        <div>
+            <div class="card-title">用户画像</div>
+            <div class="card-subtitle">个人数据分析报告</div>
+        </div>
+        <div class="timestamp">{{ timestamp }}</div>
+    </div>
+
+    <div class="profile-header">
+        <img class="avatar-large" src="https://q1.qlogo.cn/g?b=qq&nk={{ user_id }}&s=100" alt="avatar">
+        <div class="user-info">
+            <h2>{{ nickname }}</h2>
+            <span class="user-type">{{ user_type }}</span>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-box">
+            <div class="stat-value">{{ total_messages }}</div>
+            <div class="stat-label">总发言数</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">{{ daily_avg }}</div>
+            <div class="stat-label">日均发言</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">{{ active_days }}</div>
+            <div class="stat-label">活跃天数</div>
+        </div>
+    </div>
+
+    <div class="section-title">⏰ 活跃时段分布</div>
+    <div class="hourly-chart">
+        {% for hour in range(24) %}
+        <div class="hour-bar {% if hourly_stats[hour] == max_hourly %}peak{% endif %}" 
+             style="height: {{ (hourly_stats[hour] / max_hourly * 100) if max_hourly > 0 else 0 }}%;"></div>
+        {% endfor %}
+    </div>
+
+    <div class="section-title">🏆 成就徽章</div>
+    <div class="badges-container">
+        {% for badge in badges %}
+        <div class="badge {% if badge.earned %}earned{% endif %}">
+            <span>{{ badge.icon }}</span>
+            <span>{{ badge.name }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if word_cloud %}
+    <div class="section-title">☁️ 个人词云</div>
+    <div class="word-cloud">
+        {% for word, count in word_cloud[:20] %}
+        <span class="word-tag {% if loop.index <= 3 %}large{% elif loop.index <= 10 %}medium{% else %}small{% endif %}">
+            {{ word }}
+        </span>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

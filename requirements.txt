@@ -12,8 +12,21 @@ aiohttp>=3.9.0
 # 中文分词
 jieba>=0.42.1
 
+# 情感分析
+snownlp>=0.12.3
+
 # ==================== 可视化渲染 ====================
 # HTML 渲染截图（Material Design 3 风格）
 playwright>=1.40.0
+
+# Jinja2 模板引擎
+jinja2>=3.1.2
+
+# 网络图生成
+networkx>=3.2
+
+# ==================== 定时任务 ====================
+# 定时调度
+apscheduler>=3.10.4
 
 # 安装后需要运行: playwright install chromium

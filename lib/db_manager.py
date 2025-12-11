@@ -232,7 +232,7 @@ class DatabaseManager:
         
         return await asyncio.to_thread(_query)
     
-    async def get_today_messages(self, group_id: int) -> List[Tuple]:
+    async def get_today_messages(self, group_id: int) -> List[Dict]:
         """获取今日群消息用于统计"""
         def _query():
             # 计算今日0点时间戳
@@ -246,10 +246,19 @@ class DatabaseManager:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT raw_content FROM messages WHERE group_id = ? AND created_at >= ?",
+                    "SELECT raw_content, user_id, created_at FROM messages WHERE group_id = ? AND created_at >= ?",
                     (group_id, today_start)
                 )
-                return cursor.fetchall()
+                rows = cursor.fetchall()
+                return [
+                    {
+                        'message': row[0],
+                        'raw_content': row[0],
+                        'user_id': row[1],
+                        'created_at': row[2]
+                    }
+                    for row in rows
+                ]
         
         return await asyncio.to_thread(_query)
     
@@ -423,3 +432,326 @@ class DatabaseManager:
                 return result
         
         return await asyncio.to_thread(_query)
+
+    # ==================== 周报/月报相关 ====================
+    
+    async def get_period_stats(self, group_id: int, days: int = 7, 
+                                start_time: int = None, end_time: int = None) -> Dict[str, Any]:
+        """获取指定时间段的统计数据
+        
+        Args:
+            group_id: 群号
+            days: 天数（如果不指定 start_time/end_time，则使用最近 N 天）
+            start_time: 开始时间戳（可选）
+            end_time: 结束时间戳（可选）
+        """
+        import time
+        
+        # 如果没有指定时间范围，使用最近 N 天
+        if end_time is None:
+            end_time = int(time.time())
+        if start_time is None:
+            start_time = end_time - days * 86400
+        
+        def _query():
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 总消息数
+                cursor.execute(
+                    """SELECT COUNT(*) FROM messages 
+                       WHERE group_id = ? AND created_at >= ? AND created_at < ?""",
+                    (group_id, start_time, end_time)
+                )
+                total_messages = cursor.fetchone()[0]
+                
+                # 活跃用户数
+                cursor.execute(
+                    """SELECT COUNT(DISTINCT user_id) FROM messages 
+                       WHERE group_id = ? AND created_at >= ? AND created_at < ?""",
+                    (group_id, start_time, end_time)
+                )
+                active_users = cursor.fetchone()[0]
+                
+                # 图片数
+                cursor.execute(
+                    """SELECT COUNT(*) FROM assets_images 
+                       WHERE first_seen_at >= ? AND first_seen_at < ?""",
+                    (start_time, end_time)
+                )
+                image_count = cursor.fetchone()[0]
+                
+                return {
+                    'total_messages': total_messages,
+                    'active_users': active_users,
+                    'image_count': image_count
+                }
+        
+        return await asyncio.to_thread(_query)
+    
+    async def get_period_user_ranking(self, group_id: int, days: int = 7,
+                                       start_time: int = None, end_time: int = None,
+                                       limit: int = 10) -> List[Tuple]:
+        """获取指定时间段的用户发言排行"""
+        import time
+        
+        if end_time is None:
+            end_time = int(time.time())
+        if start_time is None:
+            start_time = end_time - days * 86400
+            
+        def _query():
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """SELECT user_id, COUNT(*) as count 
+                       FROM messages 
+                       WHERE group_id = ? AND created_at >= ? AND created_at < ?
+                       GROUP BY user_id 
+                       ORDER BY count DESC
+                       LIMIT ?""",
+                    (group_id, start_time, end_time, limit)
+                )
+                return cursor.fetchall()
+        
+        return await asyncio.to_thread(_query)
+    
+    async def get_period_daily_counts(self, group_id: int, days: int = 7,
+                                       start_time: int = None, end_time: int = None) -> Dict[str, int]:
+        """获取指定时间段每天的消息数，返回 {日期: 数量}"""
+        import time as time_module
+        from datetime import datetime, timedelta
+        
+        if end_time is None:
+            end_time = int(time_module.time())
+        if start_time is None:
+            start_time = end_time - days * 86400
+            
+        def _query():
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """SELECT created_at FROM messages 
+                       WHERE group_id = ? AND created_at >= ? AND created_at < ?""",
+                    (group_id, start_time, end_time)
+                )
+                rows = cursor.fetchall()
+                
+                # 按天统计
+                daily_counts = {}
+                for row in rows:
+                    day = time_module.strftime('%m/%d', time_module.localtime(row[0]))
+                    daily_counts[day] = daily_counts.get(day, 0) + 1
+                
+                # 生成连续日期字典
+                start_date = datetime.fromtimestamp(start_time)
+                end_date = datetime.fromtimestamp(end_time)
+                
+                result = {}
+                current = start_date
+                while current < end_date:
+                    day_str = current.strftime('%m/%d')
+                    result[day_str] = daily_counts.get(day_str, 0)
+                    current += timedelta(days=1)
+                
+                return result
+        
+        return await asyncio.to_thread(_query)
+    
+    async def get_period_messages(self, group_id: int, days: int = 7,
+                                   start_time: int = None, end_time: int = None) -> List[Dict]:
+        """获取指定时间段的所有消息（用于NLP分析）"""
+        import time as time_module
+        
+        if end_time is None:
+            end_time = int(time_module.time())
+        if start_time is None:
+            start_time = end_time - days * 86400
+            
+        def _query():
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """SELECT message_id, user_id, raw_content, created_at 
+                       FROM messages 
+                       WHERE group_id = ? AND created_at >= ? AND created_at < ?
+                       ORDER BY created_at""",
+                    (group_id, start_time, end_time)
+                )
+                rows = cursor.fetchall()
+                return [
+                    {
+                        'message_id': row[0],
+                        'user_id': row[1],
+                        'message': row[2],  # 兼容 _extract_texts 方法
+                        'raw_content': row[2],
+                        'created_at': row[3]
+                    }
+                    for row in rows
+                ]
+        
+        return await asyncio.to_thread(_query)
+    
+    async def get_user_stats(self, group_id: int, user_id: int) -> Dict[str, Any]:
+        """获取特定用户的统计数据"""
+        def _query():
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 总消息数
+                cursor.execute(
+                    """SELECT COUNT(*) FROM messages 
+                       WHERE group_id = ? AND user_id = ?""",
+                    (group_id, user_id)
+                )
+                total_messages = cursor.fetchone()[0]
+                
+                # 活跃天数
+                cursor.execute(
+                    """SELECT COUNT(DISTINCT date(created_at, 'unixepoch', 'localtime')) 
+                       FROM messages 
+                       WHERE group_id = ? AND user_id = ?""",
+                    (group_id, user_id)
+                )
+                active_days = cursor.fetchone()[0]
+                
+                # 首次发言时间
+                cursor.execute(
+                    """SELECT MIN(created_at) FROM messages 
+                       WHERE group_id = ? AND user_id = ?""",
+                    (group_id, user_id)
+                )
+                first_msg = cursor.fetchone()[0]
+                
+                return {
+                    'total_messages': total_messages,
+                    'active_days': active_days,
+                    'first_message_time': first_msg
+                }
+        
+        return await asyncio.to_thread(_query)
+    
+    async def get_user_hourly_stats(self, group_id: int, user_id: int) -> Dict[int, int]:
+        """获取用户各时段发言统计"""
+        def _query():
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """SELECT created_at FROM messages 
+                       WHERE group_id = ? AND user_id = ?""",
+                    (group_id, user_id)
+                )
+                rows = cursor.fetchall()
+                
+                hourly_counts = {i: 0 for i in range(24)}
+                for row in rows:
+                    hour = time.localtime(row[0]).tm_hour
+                    hourly_counts[hour] += 1
+                
+                return hourly_counts
+        
+        return await asyncio.to_thread(_query)
+    
+    async def get_user_messages(self, group_id: int, user_id: int, limit: int = 1000) -> List[Dict]:
+        """获取用户的消息（用于词云等）"""
+        def _query():
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """SELECT message_id, raw_content, created_at 
+                       FROM messages 
+                       WHERE group_id = ? AND user_id = ?
+                       ORDER BY created_at DESC
+                       LIMIT ?""",
+                    (group_id, user_id, limit)
+                )
+                rows = cursor.fetchall()
+                return [
+                    {
+                        'message_id': row[0],
+                        'user_id': user_id,
+                        'message': row[1],  # 兼容 _extract_texts 方法
+                        'raw_content': row[1],
+                        'created_at': row[2]
+                    }
+                    for row in rows
+                ]
+        
+        return await asyncio.to_thread(_query)
+    
+    # ==================== 撤回消息统计 ====================
+    
+    async def record_recall(self, group_id: int, user_id: int, recall_time: int, message_id: int = None):
+        """记录撤回消息
+        
+        Args:
+            group_id: 群号
+            user_id: 撤回者 QQ
+            recall_time: 撤回时间戳
+            message_id: 消息 ID（可选）
+        """
+        def _insert():
+            try:
+                with self._get_connection() as conn:
+                    # 确保 recall_stats 表存在
+                    conn.execute("""
+                        CREATE TABLE IF NOT EXISTS recall_stats (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            group_id INTEGER NOT NULL,
+                            user_id INTEGER NOT NULL,
+                            message_id INTEGER,
+                            recall_time INTEGER NOT NULL
+                        )
+                    """)
+                    conn.execute(
+                        """INSERT INTO recall_stats (group_id, user_id, message_id, recall_time) 
+                           VALUES (?, ?, ?, ?)""",
+                        (group_id, user_id, message_id, recall_time)
+                    )
+                    conn.commit()
+                    return True
+            except Exception as e:
+                logger.error(f"记录撤回失败: {e}")
+                return False
+        
+        return await asyncio.to_thread(_insert)
+    
+    async def get_recall_ranking(self, group_id: int, days: int = 7, 
+                                  start_time: int = None, limit: int = 10) -> List[Tuple]:
+        """获取撤回次数排行
+        
+        Args:
+            group_id: 群号
+            days: 统计天数
+            start_time: 开始时间戳（可选，如果不指定则使用 days）
+            limit: 返回数量限制
+        """
+        import time as time_module
+        
+        if start_time is None:
+            start_time = int(time_module.time()) - days * 86400
+            
+        def _query():
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 检查表是否存在
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='recall_stats'"
+                )
+                if not cursor.fetchone():
+                    return []
+                
+                cursor.execute(
+                    """SELECT user_id, COUNT(*) as count 
+                       FROM recall_stats 
+                       WHERE group_id = ? AND recall_time >= ?
+                       GROUP BY user_id 
+                       ORDER BY count DESC
+                       LIMIT ?""",
+                    (group_id, start_time, limit)
+                )
+                return cursor.fetchall()
+        
+        return await asyncio.to_thread(_query)
+

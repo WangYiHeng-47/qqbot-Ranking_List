@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .recall-header {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .recall-icon {
+        font-size: 48px;
+        margin-bottom: 8px;
+    }
+
+    .recall-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1D1B20;
+    }
+
+    .recall-subtitle {
+        font-size: 14px;
+        color: #79747E;
+        margin-top: 4px;
+    }
+
+    .recall-summary {
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+        margin-bottom: 24px;
+        padding: 16px;
+        background: #F9F6FC;
+        border-radius: 16px;
+    }
+
+    .summary-item {
+        text-align: center;
+    }
+
+    .summary-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #6750A4;
+    }
+
+    .summary-label {
+        font-size: 12px;
+        color: #79747E;
+    }
+
+    .rank-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        margin-bottom: 8px;
+        background: #FAFAFA;
+        border-radius: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .rank-item:hover {
+        background: #F3EDF7;
+    }
+
+    .rank-badge {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .rank-badge.r1 { background: linear-gradient(135deg, #FF6B6B, #EE5A5A); }
+    .rank-badge.r2 { background: linear-gradient(135deg, #FFA726, #FF9800); }
+    .rank-badge.r3 { background: linear-gradient(135deg, #FFCA28, #FFC107); }
+    .rank-badge.rn { background: linear-gradient(135deg, #78909C, #607D8B); }
+
+    .rank-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 2px solid #E8DEF8;
+    }
+
+    .rank-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .rank-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1D1B20;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rank-sub {
+        font-size: 12px;
+        color: #79747E;
+        margin-top: 2px;
+    }
+
+    .rank-count {
+        font-size: 20px;
+        font-weight: 700;
+        color: #B71C1C;
+    }
+
+    .rank-count span {
+        font-size: 12px;
+        color: #79747E;
+        font-weight: 400;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #79747E;
+    }
+
+    .empty-state .icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon">🗑️</div>
+        <div>
+            <div class="card-title">撤回消息统计</div>
+            <div class="card-subtitle">最近 {{ days }} 天</div>
+        </div>
+        <div class="timestamp">{{ timestamp }}</div>
+    </div>
+
+    <div class="recall-summary">
+        <div class="summary-item">
+            <div class="summary-value">{{ total_recalls }}</div>
+            <div class="summary-label">总撤回次数</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-value">{{ total_users }}</div>
+            <div class="summary-label">涉及用户</div>
+        </div>
+    </div>
+
+    {% if ranking %}
+    {% for user in ranking %}
+    <div class="rank-item">
+        <div class="rank-badge {% if loop.index == 1 %}r1{% elif loop.index == 2 %}r2{% elif loop.index == 3 %}r3{% else %}rn{% endif %}">
+            {{ loop.index }}
+        </div>
+        <img class="rank-avatar" src="https://q1.qlogo.cn/g?b=qq&nk={{ user.user_id }}&s=100" alt="">
+        <div class="rank-info">
+            <div class="rank-name">{{ user.nickname }}</div>
+            <div class="rank-sub">撤回达人</div>
+        </div>
+        <div class="rank-count">{{ user.count }}<span>次</span></div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div class="icon">✨</div>
+        <div>最近 {{ days }} 天暂无撤回记录</div>
+        <div style="font-size: 12px; margin-top: 8px;">大家都很坦荡！</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
