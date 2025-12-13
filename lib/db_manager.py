@@ -623,10 +623,14 @@ class DatabaseManager:
                 )
                 first_msg = cursor.fetchone()[0]
                 
+                # 计算日均发言数
+                daily_avg = total_messages / active_days if active_days > 0 else 0
+                
                 return {
                     'total_messages': total_messages,
                     'active_days': active_days,
-                    'first_message_time': first_msg
+                    'first_message_time': first_msg,
+                    'daily_avg': round(daily_avg, 1)
                 }
         
         return await asyncio.to_thread(_query)
