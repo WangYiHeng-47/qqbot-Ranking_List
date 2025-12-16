@@ -363,8 +363,11 @@ class DatabaseManager:
                 )
                 total_users = cursor.fetchone()[0]
                 
-                # 图片数
-                cursor.execute("SELECT COUNT(*) FROM assets_images")
+                # 图片数（通过消息表统计该群的图片消息）
+                cursor.execute(
+                    "SELECT COUNT(*) FROM messages WHERE group_id = ? AND msg_type = 'image'",
+                    (group_id,)
+                )
                 total_images = cursor.fetchone()[0]
                 
                 return {
