@@ -124,17 +124,28 @@ class TemplateRenderer:
             return None
     
     async def close(self):
-        """关闭浏览器"""
-        if self._context:
-            await self._context.close()
-            self._context = None
-        if self._browser:
-            await self._browser.close()
-            self._browser = None
-        if self._playwright:
-            await self._playwright.stop()
-            self._playwright = None
-        logger.info("Playwright 浏览器已关闭")
+        """关闭浏览器（静默处理异常）"""
+        try:
+            if self._context:
+                try:
+                    await self._context.close()
+                except Exception:
+                    pass  # 忽略已关闭的错误
+                self._context = None
+            if self._browser:
+                try:
+                    await self._browser.close()
+                except Exception:
+                    pass
+                self._browser = None
+            if self._playwright:
+                try:
+                    await self._playwright.stop()
+                except Exception:
+                    pass
+                self._playwright = None
+        except Exception:
+            pass  # 静默处理所有关闭异常
     
     # ==================== 便捷渲染方法 ====================
     

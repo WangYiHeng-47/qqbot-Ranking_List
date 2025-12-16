@@ -473,11 +473,12 @@ class DatabaseManager:
                 )
                 active_users = cursor.fetchone()[0]
                 
-                # 图片数
+                # 图片数（通过消息表统计该群的图片消息）
                 cursor.execute(
-                    """SELECT COUNT(*) FROM assets_images 
-                       WHERE first_seen_at >= ? AND first_seen_at < ?""",
-                    (start_time, end_time)
+                    """SELECT COUNT(*) FROM messages 
+                       WHERE group_id = ? AND created_at >= ? AND created_at < ?
+                       AND msg_type = 'image'""",
+                    (group_id, start_time, end_time)
                 )
                 image_count = cursor.fetchone()[0]
                 

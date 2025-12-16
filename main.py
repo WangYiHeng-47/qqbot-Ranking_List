@@ -1028,18 +1028,27 @@ class QQStatBot:
                 self.ws = None
     
     async def shutdown(self):
-        """关闭机器人"""
+        """关闭机器人（静默处理异常）"""
         self.logger.info("正在关闭机器人...")
         
         # 停止定时任务
         if self.scheduler:
-            self.scheduler.shutdown()
+            try:
+                self.scheduler.shutdown(wait=False)
+            except Exception:
+                pass
         
         # 关闭渲染器
-        await renderer.close()
+        try:
+            await renderer.close()
+        except Exception:
+            pass
         
         # 关闭数据库
-        await self.db.close()
+        try:
+            await self.db.close()
+        except Exception:
+            pass
         
         self.logger.info("机器人已关闭")
 
@@ -1057,12 +1066,19 @@ async def main():
         await bot.run()
     except KeyboardInterrupt:
         pass
+    except asyncio.CancelledError:
+        pass
     finally:
         await bot.shutdown()
 
 
 if __name__ == "__main__":
+    import warnings
+    warnings.filterwarnings("ignore")  # 屏蔽警告
+    
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n机器人已停止")
+        pass  # 静默退出
+    except SystemExit:
+        pass
